@@ -1,13 +1,15 @@
 import express from "express";
 import { firebaseConfig, port } from './config.mjs';
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, doc, getDoc, getDocs, updateDoc, deleteDoc, query, where } from 'firebase/firestore/lite';
+import { getFirestore, collection, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where } from 'firebase/firestore/lite';
 
 const app = express();
 app.use(express.json());
 
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
+const initializeFirebase = () => {
+  const firebaseApp = initializeApp(firebaseConfig);
+  return getFirestore(firebaseApp);
+};
 
 app.get("/health", async (req, res) => {
   console.log("get health");
@@ -16,6 +18,7 @@ app.get("/health", async (req, res) => {
 
 //Cadastro
 app.post("/cadastra", async (req, res) => {
+  const db = initializeFirebase();
 
   try {
     const { username, password, firstname, lastname, email } = req.body;
@@ -38,89 +41,62 @@ app.post("/cadastra", async (req, res) => {
 
 //Login
 app.get("/login", async (req, res) => {
-  var trigger = true;
-  const db = initializeFirebase();
   const { username, password } = req.body;
 
-  const q = query(collection(db, "users"), where("username", "==", username));
-  const querySnapshot = await getDocs(q);
-  querySnapshot.forEach((doc) => {
-    if (doc.get("password") == password) {
-      res.status(200).send("OK");
-      trigger = false;
-    }
-  });
-  if (trigger) {
-    res.status(401).send("Unauthorized");
+  try{
+    const db = initializeFirebase();
+    const usersRef = collection(db, "users");
+    const userRef = query(usersRef, where("username", "==", username), where("password", "==", password));
+    const userDoc = await getDocs(userRef);
+
+    console.log(userDoc);
+    res.status(200).send(userDoc ? true : false);
+  }
+  catch (error){
+    console.log(error);
+    res.status(401).send(error);
   }
 });
 
 //mensagem
-app.post("/chat", async (req, res) => {
-  const db = initializeFirebase();
+app.post("/", async (req, res) => {
+  const { chatID, userID, message, date } = req.body;
 
-  const { chatID, userID, msg } = req.body;
-  var userFlag = true;
-  var timeStamp = Date.now();
-  var chatExists = false;
-
-  if (chatID !== undefined && chatID !== "") {// Se chatID estiver presente, significa que o chat já existe
-    const querySnapshot = await getDocs(collection(db, "chats"));
-    querySnapshot.forEach((doc) => {
-      if (doc.id == chatID) {
-        chatExists = true;
-      }
-    });
-    // Lógica para adicionar a mensagem ao chat existente
-    if (chatExists) {
-      console.log(`Adicionando mensagem ao chat ${chatID}`);
-      try { //Envio de mensagem
-        const msgDocRef = await addDoc(collection(db, "messages"), {
-          chatID,
-          msg,
-          timeStamp,
-          userFlag
-        });
-        console.log("Nova mensagem enviada com o ID: ", msgDocRef.id);
-      } catch (error) {
-        console.error("Erro ao enviar mensagem: ", error)
-        res.status(500).send("Erro ao enviar mensagem");
-      }
+  try{
+    const db = initializeFirebase();
+    if (chatID) {
+      const msgDocRef = await addDoc(collection(db, "messages"), {
+        chatID,
+        message,
+        timeStamp: date,
+        userFlag: true
+      });
       res.status(200).send("OK");
-    } else {
-      res.status(401).send("ID de chat não encontrado");
     }
-  } else {// Se chatID não estiver presente, significa que o chat não existe
-    console.log("Criando um novo chat e adicionando mensagem");
-    try {
+    else {
       const docRef = await addDoc(collection(db, "chats"), {
         userID
       });
       const newChatID = docRef.id;
-      console.log("Novo chat criado com o ID: ", newChatID);
-      
-      try { //Envio de mensagem
-        const msgDocRef = await addDoc(collection(db, "messages"), {
-          newChatID,
-          msg,
-          timeStamp,
-          userFlag
-        });
-        console.log("Nova mensagem enviada com o ID: ", msgDocRef);
-      } catch (error) {
-        console.error("Erro ao enviar mensagem: ", error)
-        res.status(500).send("Erro ao enviar mensagem");
-      }      
+      const msgDocRef = await addDoc(collection(db, "messages"), {
+        newChatID,
+        msg,
+        timeStamp,
+        userFlag
+      });
       res.status(200).send("OK");
-    } catch (error) {
-      console.error("Erro ao criar um novo chat:", error);
-      res.status(500).send("Erro ao criar um novo chat");
     }
+  }
+  catch (error) {
+    console.log(error);
+    res.status(500).send(error);
   }
 });
 
 //Abrir chat
 app.put("/:chatid", async (req, res) => {
+  const db = initializeFirebase();
+
   const { chatid } = req.params;
   const { titulo } = req.body;
 
@@ -138,6 +114,8 @@ app.put("/:chatid", async (req, res) => {
 
 //Deletar chat
 app.delete("/:chatid", async (req, res) => {
+  const db = initializeFirebase();
+
   const { chatid } = req.params;
 
   try {
