@@ -32,6 +32,10 @@ const initializeFirebase = () => {
   return getFirestore(firebaseApp);
 };
 
+app.get("/health", async (req, res) => {
+  console.log("get health");
+  res.status(200).send();
+})
 
 //Cadastro
 app.post("/cadastra", async (req, res) => {
