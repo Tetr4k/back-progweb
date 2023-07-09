@@ -56,17 +56,66 @@ app.get("/login", async (req, res) => {
 });
 
 //mensagem
-app.get("/:chatid", async (req, res) => {
-  const { chatid } = req.params;
+app.post("/chat", async (req, res) => {
+  const db = initializeFirebase();
 
-  const docRef = await getDoc(collection(db, "chats"), chatid);
-  const chat = docRef.data();
+  const { chatID, userID, msg } = req.body;
+  var userFlag = true;
+  var timeStamp = Date.now();
+  var chatExists = false;
 
-
-  if (chat) {
-    res.status(200).json(chat);
-  } else {
-    res.status(404).send("Chat not found");
+  if (chatID !== undefined && chatID !== "") {// Se chatID estiver presente, significa que o chat já existe
+    const querySnapshot = await getDocs(collection(db, "chats"));
+    querySnapshot.forEach((doc) => {
+      if (doc.id == chatID) {
+        chatExists = true;
+      }
+    });
+    // Lógica para adicionar a mensagem ao chat existente
+    if (chatExists) {
+      console.log(`Adicionando mensagem ao chat ${chatID}`);
+      try { //Envio de mensagem
+        const msgDocRef = await addDoc(collection(db, "messages"), {
+          chatID,
+          msg,
+          timeStamp,
+          userFlag
+        });
+        console.log("Nova mensagem enviada com o ID: ", msgDocRef.id);
+      } catch (error) {
+        console.error("Erro ao enviar mensagem: ", error)
+        res.status(500).send("Erro ao enviar mensagem");
+      }
+      res.status(200).send("OK");
+    } else {
+      res.status(401).send("ID de chat não encontrado");
+    }
+  } else {// Se chatID não estiver presente, significa que o chat não existe
+    console.log("Criando um novo chat e adicionando mensagem");
+    try {
+      const docRef = await addDoc(collection(db, "chats"), {
+        userID
+      });
+      const newChatID = docRef.id;
+      console.log("Novo chat criado com o ID: ", newChatID);
+      
+      try { //Envio de mensagem
+        const msgDocRef = await addDoc(collection(db, "messages"), {
+          newChatID,
+          msg,
+          timeStamp,
+          userFlag
+        });
+        console.log("Nova mensagem enviada com o ID: ", msgDocRef);
+      } catch (error) {
+        console.error("Erro ao enviar mensagem: ", error)
+        res.status(500).send("Erro ao enviar mensagem");
+      }      
+      res.status(200).send("OK");
+    } catch (error) {
+      console.error("Erro ao criar um novo chat:", error);
+      res.status(500).send("Erro ao criar um novo chat");
+    }
   }
 });
 
