@@ -45,12 +45,12 @@ app.get("/login", async (req, res) => {
 
   try{
     const db = initializeFirebase();
-    const usersRef = collection(db, "users");
-    const userRef = query(usersRef, where("username", "==", username), where("password", "==", password));
-    const userDoc = await getDocs(userRef);
+    const usersCollection = collection(db, "users");
+    const usersRef = query(usersCollection, where("username", "==", username), where("password", "==", password));
+    const userDoc = await getDocs(usersRef);
+    const userData = userDoc.docs[0];
 
-    console.log(userDoc);
-    res.status(200).send(userDoc ? true : false);
+    res.status(200).send(userData ? userData.id : false);
   }
   catch (error){
     console.log(error);
