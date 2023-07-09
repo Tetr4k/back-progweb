@@ -58,34 +58,51 @@ app.get("/login", async (req, res) => {
   }
 });
 
-//mensagem
+//Mensagem
 app.post("/", async (req, res) => {
-  const { chatID, userID, message, date } = req.body;
+  const { chatID, userID, message, timeStamp } = req.body;
 
   try{
     const db = initializeFirebase();
-    if (chatID) {
-      const msgDocRef = await addDoc(collection(db, "messages"), {
-        chatID,
-        message,
-        timeStamp: date,
-        userFlag: true
-      });
-      res.status(200).send("OK");
-    }
-    else {
-      const docRef = await addDoc(collection(db, "chats"), {
+
+    const chatsCollection = collection(db, "chats");
+    const messagesCollection = collection(db, "messages");
+
+    let newChatID;
+
+    if (!chatID) {
+      const docRef = await addDoc(chatsCollection, {
         userID
       });
-      const newChatID = docRef.id;
-      const msgDocRef = await addDoc(collection(db, "messages"), {
-        newChatID,
-        msg,
-        timeStamp,
-        userFlag
-      });
-      res.status(200).send("OK");
+      newChatID = docRef.id;
     }
+    newChatID = chatID ? chatID : newChatID
+
+    const msgDocRef = await addDoc(messagesCollection, {
+      chatID: newChatID,
+      message: message,
+      timeStamp: timeStamp,
+      userFlag: true
+    });
+
+    const messagesRef = query(messagesCollection, where("chatID", "==", newChatID))
+    const messagesDoc = await getDocs(messagesRef);
+
+    let messages = [];
+
+    messagesDoc.forEach(doc => {
+      const {timeStamp, userFlag, message} = doc.data();
+      messages.push({
+        timeStamp: timeStamp,
+        userFlag: userFlag,
+        message: message
+      })
+    })
+
+    res.status(200).send({
+      chatID: newChatID,
+      messages: messages
+    });
   }
   catch (error) {
     console.log(error);
