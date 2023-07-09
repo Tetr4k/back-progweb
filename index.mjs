@@ -1,6 +1,6 @@
 import express from "express";
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore/lite';
+import { getFirestore, collection, addDoc, doc, getDoc, getDocs, updateDoc, deleteDoc, query, where } from 'firebase/firestore/lite';
 
 // Import the functions you need from the SDKs you need
 // TODO: Add SDKs for Firebase products that you want to use
@@ -32,10 +32,6 @@ const initializeFirebase = () => {
   return getFirestore(firebaseApp);
 };
 
-app.get("/health", async(req, res) => {
-  console.log("Ta chegando");
-  res.status(200).send();
-})
 
 //Cadastro
 app.post("/cadastra", async (req, res) => {
@@ -61,21 +57,18 @@ app.post("/cadastra", async (req, res) => {
 });
 
 //Login
-app.get("/login/:username/:password", async (req, res) => {
+app.get("/login", async (req, res) => {
   const db = initializeFirebase();
-  const { username, password } = req.params;
+  const { username, password } = req.body;
 
-  const docRef = doc(collection(db, "users"), username);
-  const docSnap = await getDoc(docRef);
-  const user = docSnap.data();
-
-  console.log(username, password);
-
-  if (user && user.password == password) {
-    res.status(200).send("OK");
-  } else {
-    res.status(401).send("Unauthorized");
-  }
+  const q = query(collection(db, "users"), where("username", "==", username));
+  const querySnapshot = await getDocs(q);
+  querySnapshot.forEach((doc) => {
+    if (doc.get("password") == password) {
+      res.status(200).send("OK");
+    }
+  });
+  res.status(401).send("Unauthorized");
 });
 
 
