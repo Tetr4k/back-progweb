@@ -38,6 +38,8 @@ app.post("/cadastra", async (req, res) => {
 
 //Login
 app.get("/login", async (req, res) => {
+  var trigger = true;
+  const db = initializeFirebase();
   const { username, password } = req.body;
 
   const q = query(collection(db, "users"), where("username", "==", username));
@@ -45,9 +47,12 @@ app.get("/login", async (req, res) => {
   querySnapshot.forEach((doc) => {
     if (doc.get("password") == password) {
       res.status(200).send("OK");
+      trigger = false;
     }
   });
-  res.status(401).send("Unauthorized");
+  if (trigger) {
+    res.status(401).send("Unauthorized");
+  }
 });
 
 //mensagem
