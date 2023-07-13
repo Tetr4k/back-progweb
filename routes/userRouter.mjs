@@ -29,18 +29,31 @@ router.post("/cadastra", async (req, res) => {
 	//const newUser = new User(firstname, lastname, email, date);
 	try {
 		//validar
-		//username ja cadastrado?
-		//email ja cadastrado?
-		const docRef = await addDoc(getUsers(), {
-		  username: username,
-		  password: password,
-		  firstname: firstname,
-		  lastname: lastname,
-		  email: email,
-		  date: date
-		});
-  
-	  	res.status(200).send(new User(firstname, lastname, email, date));
+		//username ou email ja cadastrado?
+		const usrnmQuery = query(getUsers(), where("username", "==", username));
+		const emailQuery = query(getUsers(), where("email", "==", email));
+		const existingNameDoc = await getDocs(usrnmQuery);
+		const existingEmailDoc = await getDocs(emailQuery);
+		if (existingNameDoc.size > 0) {
+			console.log("Nome de usuário já existe!");
+			res.status(202).send("Non-original username");
+		}
+		else if (existingEmailDoc.size > 0) {
+			console.log("Endereço de email já está em uso!");
+			res.status(202).send("Email in use");
+		}
+		else {
+			const docRef = await addDoc(getUsers(), {
+			username: username,
+			password: password,
+			firstname: firstname,
+			lastname: lastname,
+			email: email,
+			date: date
+			});
+	
+			res.status(200).send(new User(firstname, lastname, email, date));
+		}
 	} catch (error) {
 		console.log(error.message);
 		res.status(500).send(error.message);
