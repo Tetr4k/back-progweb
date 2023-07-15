@@ -4,6 +4,24 @@ import { getMessages, getChats } from "../dao/firebaseConnection.mjs";
 
 const router = express.Router();
 
+function randomMessage() {
+	const frases = [
+		"Olá, como você está?",
+		"Estou animado para aprender coisas novas!",
+		"Que dia lindo hoje!",
+		"Vamos sair para jantar esta noite?",
+		"Estou planejando uma viagem incrível!",
+		"Gosto de passear no parque aos domingos.",
+		"A vida é cheia de surpresas maravilhosas!",
+		"Nunca é tarde para começar algo novo.",
+		"Aproveite cada momento e seja feliz!",
+		"A imaginação é o limite!"
+	  ];
+	
+	  const indice = Math.floor(Math.random() * frases.length);
+	  return frases[indice];
+}
+
 //Todos os chats
 router.get("/chats", async (req, res) => {
 	console.log("GET /chats");
@@ -72,14 +90,14 @@ router.get("/messages/:chatID", async (req, res) => {
 	console.log("GET /messages/"+chatID);
   
 	try{
-		/*if(Math.random()%20){
+		if(Math.random()%20){
 			const docRef = await addDoc(getMessages(), {
 				chat: chatID,
-				owner: undefined,
+				owner: "",
 				content: randomMessage(),
 				time: Date.now()
 			});
-		}*/
+		}
 		let messages = [];
 
 		const messagesQuery = query(getMessages(), where("chat", "==", chatID));
