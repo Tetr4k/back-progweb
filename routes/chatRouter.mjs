@@ -1,25 +1,21 @@
 import express from "express";
+import axios from "axios";
 import { query, addDoc, getDocs, where } from 'firebase/firestore/lite';
 import { getMessages, getChats } from "../dao/firebaseConnection.mjs";
 
 const router = express.Router();
 
-function randomMessage() {
-	const frases = [
-		"Olá, como você está?",
-		"Estou animado para aprender coisas novas!",
-		"Que dia lindo hoje!",
-		"Vamos sair para jantar esta noite?",
-		"Estou planejando uma viagem incrível!",
-		"Gosto de passear no parque aos domingos.",
-		"A vida é cheia de surpresas maravilhosas!",
-		"Nunca é tarde para começar algo novo.",
-		"Aproveite cada momento e seja feliz!",
-		"A imaginação é o limite!"
-	  ];
-	
-	  const indice = Math.floor(Math.random() * frases.length);
-	  return frases[indice];
+async function randomMessage() {
+	try {
+		const response = await axios.get('https://meowfacts.herokuapp.com/');
+		const catJson = response.data.data;
+		const mensagem = catJson[0];
+		console.log(mensagem);
+		return mensagem;
+	  } catch (error) {
+		console.error('Erro ao recuperar mensagem:', error);
+		throw error;
+	  }
 }
 
 //Todos os chats
@@ -94,7 +90,7 @@ router.get("/messages/:chatID", async (req, res) => {
 			const docRef = await addDoc(getMessages(), {
 				chat: chatID,
 				owner: "",
-				content: randomMessage(),
+				content: await randomMessage(),
 				time: Date.now()
 			});
 		}
