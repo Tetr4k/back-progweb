@@ -120,12 +120,12 @@ router.get("/messages/:chatID", async (req, res) => {
 //Registra mensagem
 router.post("/messages", async (req, res) => {
 	const { chatID, userID, content, time } = req.body;
-	
+console.log(chatID)
 	console.log("POST /messages")
 
 	try{
 		let newChatID;
-	
+
 		if (!chatID) {
 			const docRef = await addDoc(getChats(), {
 				title: content
@@ -140,12 +140,11 @@ router.post("/messages", async (req, res) => {
 				time: time,
 				owner: userID
 		});
-	
-		const messagesRef = query(getMessages(), where("chatID", "==", newChatID))
+
+		const messagesRef = query(getMessages(), where("chat", "==", newChatID))
 		const messagesDoc = await getDocs(messagesRef);
-	
+
 		let messages = [];
-	
 		messagesDoc.forEach(elem => {
 			const {time, owner, content} = elem.data();
 			messages.push({
@@ -154,7 +153,7 @@ router.post("/messages", async (req, res) => {
 				content: content
 			})
 		})
-	  
+
 		console.log("Realizado com Sucesso");
 	  	res.status(200).send(messages);
 	}
