@@ -86,7 +86,7 @@ router.get("/messages/:chatID", async (req, res) => {
 	console.log("GET /messages/"+chatID);
   
 	try{
-		if(Math.random()%20){
+		if(!Math.random()%20){
 			const docRef = await addDoc(getMessages(), {
 				chat: chatID,
 				owner: "",
